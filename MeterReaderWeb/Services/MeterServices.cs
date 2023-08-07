@@ -6,6 +6,7 @@ using Grpc.Core;
 using MeterReaderWeb.Data;
 using MeterReaderWeb.Data.Entities;
 using Microsoft.Extensions.Logging;
+using Newtonsoft.Json;
 
 namespace MeterReaderWeb.Services
 {
@@ -30,6 +31,8 @@ namespace MeterReaderWeb.Services
 
             if (request.Successful == ReadingStatus.Success)
             {
+                _logger.LogInformation("AddReading Method Called " + JsonConvert.SerializeObject(request));
+
                 try
                 {
                     foreach (var r in request.Readings)

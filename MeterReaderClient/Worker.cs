@@ -7,7 +7,7 @@ namespace MeterReaderClient
     {
         private readonly ILogger<Worker> _logger;
         private readonly IConfiguration _configuration;
-        private readonly IReadingFactory _readingFactory;
+        private readonly ReadingFactory _readingFactory;
         private MeterReadingService.MeterReadingServiceClient? _meterReadingServiceClient = null;
         protected MeterReadingService.MeterReadingServiceClient MeterReadingServiceClient
         {
@@ -21,7 +21,7 @@ namespace MeterReaderClient
                 return _meterReadingServiceClient;
             }
         }
-        public Worker(ILogger<Worker> logger, IConfiguration configuration, IReadingFactory readingFactory)
+        public Worker(ILogger<Worker> logger, IConfiguration configuration, ReadingFactory readingFactory)
         {
             _logger = logger;
             _configuration = configuration;
@@ -42,7 +42,7 @@ namespace MeterReaderClient
 
                 for (int i = 0; i < 5; i++)
                 {
-                    pkt.Readings.Add(_readingFactory.Generate(customerId).Result);
+                    pkt.Readings.Add(await _readingFactory.Generate(customerId));
                 }
 
                 await MeterReadingServiceClient.AddReadingAsync(pkt);
