@@ -38,6 +38,8 @@
     <ProjectReference Include="..\MeterReaderLib\MeterReaderLib.csproj" />
   </ItemGroup>
 
+
+
   <ItemGroup>
     <Protobuf Include="Protos\enums.proto" GrpcServices="None" />
     <Protobuf Include="Protos\MeterReader.proto" GrpcServices="Server" />
