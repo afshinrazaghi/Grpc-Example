@@ -18,10 +18,10 @@
   </ItemGroup>
 
   <ItemGroup>
-    <Protobuf Include="..\..\..\MeterReaderWeb\MeterReaderWeb\Protos\enums.proto" GrpcServices="None">
+    <Protobuf Include="..\MeterReaderWeb\Protos\enums.proto" GrpcServices="Client">
       <Link>Protos\enums.proto</Link>
     </Protobuf>
-    <Protobuf Include="..\..\..\MeterReaderWeb\MeterReaderWeb\Protos\MeterReader.proto" GrpcServices="Client">
+    <Protobuf Include="..\MeterReaderWeb\Protos\MeterReader.proto" GrpcServices="Client">
       <Link>Protos\MeterReader.proto</Link>
     </Protobuf>
   </ItemGroup>
