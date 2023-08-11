@@ -1,3 +1,4 @@
+using Grpc.Core;
 using Grpc.Net.Client;
 using MeterReaderWeb.Services;
 
@@ -9,6 +10,8 @@ namespace MeterReaderClient
         private readonly IConfiguration _configuration;
         private readonly ReadingFactory _readingFactory;
         private MeterReadingService.MeterReadingServiceClient? _meterReadingServiceClient = null;
+        private string _token = string.Empty;
+        private DateTime _expiration = DateTime.MinValue;
         protected MeterReadingService.MeterReadingServiceClient MeterReadingServiceClient
         {
             get
@@ -31,41 +34,65 @@ namespace MeterReaderClient
         protected override async Task ExecuteAsync(CancellationToken stoppingToken)
         {
             var customerId = _configuration.GetValue<int>("Service:CustomerId");
-            int counter = 0;
+            //int counter = 0;
 
-
-
-            while (!stoppingToken.IsCancellationRequested)
+            if (!NeedLogin() || await GenerateToken())
             {
-                counter++;
-                if(counter %10 == 0)
+                var headers = new Metadata();
+                headers.Add("Authorization", $"Bearer {_token}");
+                while (!stoppingToken.IsCancellationRequested)
                 {
-                    Console.WriteLine("Send Diagnostics");
-                    var stream = MeterReadingServiceClient.SendDiagnostics();
-                    for(var x= 0;x<5;x++)
+                    //counter++;
+                    //if (counter % 10 == 0)
+                    //{
+                    //    Console.WriteLine("Send Diagnostics");
+                    //    var stream = MeterReadingServiceClient.SendDiagnostics();
+                    //    for (var x = 0; x < 5; x++)
+                    //    {
+                    //        var reading = await _readingFactory.Generate(customerId);
+                    //        await stream.RequestStream.WriteAsync(reading);
+                    //    }
+
+                    //    await stream.RequestStream.CompleteAsync();
+                    //}
+
+                    _logger.LogInformation("Worker running at: {time}", DateTimeOffset.Now);
+                    var pkt = new ReadingPacket()
                     {
-                        var reading = await _readingFactory.Generate(customerId);
-                        await stream.RequestStream.WriteAsync(reading);
+                        Successful = ReadingStatus.Success,
+                        Notes = "This is a test packet"
+                    };
+
+                    for (int i = 0; i < 5; i++)
+                    {
+                        pkt.Readings.Add(await _readingFactory.Generate(customerId));
                     }
 
-                    await stream.RequestStream.CompleteAsync();
+                    await MeterReadingServiceClient.AddReadingAsync(pkt, headers: headers);
+                    await Task.Delay(_configuration.GetValue<int>("Service:DelayInterval"), stoppingToken);
                 }
-
-                _logger.LogInformation("Worker running at: {time}", DateTimeOffset.Now);
-                var pkt = new ReadingPacket()
-                {
-                    Successful = ReadingStatus.Success,
-                    Notes = "This is a test packet"
-                };
-
-                for (int i = 0; i < 5; i++)
-                {
-                    pkt.Readings.Add(await _readingFactory.Generate(customerId));
-                }
-
-                await MeterReadingServiceClient.AddReadingAsync(pkt);
-                await Task.Delay(_configuration.GetValue<int>("Service:DelayInterval"), stoppingToken);
             }
+        }
+
+        private bool NeedLogin() => string.IsNullOrEmpty(_token) || _expiration < DateTime.UtcNow;
+        private async Task<bool> GenerateToken()
+        {
+            string userName = _configuration.GetValue<string>("Service:UserName")!;
+            string password = _configuration.GetValue<string>("Service:Password")!;
+            var res = await MeterReadingServiceClient.CreateTokenAsync(new TokenRequest
+            {
+                UserName = userName,
+                Password = password
+            });
+            if (res.Success)
+            {
+                _token = res.Token;
+                _expiration = res.Expiration.ToDateTime();
+                return true;
+            }
+            _token = string.Empty;
+            _expiration = DateTime.MinValue;
+            return false;
         }
     }
 }
